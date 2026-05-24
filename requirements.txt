@@ -1,0 +1,10 @@
+# pip install requests
+# pip freeze | Out-File -Encoding UTF8 requirements.txt
+
+flask==3.0.3
+pandas
+numpy
+psycopg[binary]
+sqlalchemy
+python-dotenv==1.0.1
+pytest==8.2.2
