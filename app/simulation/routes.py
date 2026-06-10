@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from app.simulation.engine import SimulationEngine
-
+from app.simulation.models import SimulationHistory
 
 simulation_bp = Blueprint('simulation', __name__)
 
@@ -31,3 +31,27 @@ def run_simulation():
 
     result = SimulationEngine.run_hazard_simulation(origin, destination, layovers)
     return jsonify(result), 200
+
+
+@simulation_bp.route('/history', methods=['GET'])
+def get_simulation_history():
+    """Audit endpoint that fetches the historical logs of all calculated flight risks."""
+    try:
+        # We retrieve the records sorted from the most recent
+        records = SimulationHistory.query.order_by(SimulationHistory.created_at.desc()).all()
+
+        # We convert SQLAlchemy objects to JSON dictionaries using your 'to_dict()' method
+        history_payload = [record.to_dict() for record in records]
+
+        return jsonify({
+            "status": "success",
+            "count": len(history_payload),
+            "history": history_payload
+        }), 200
+
+    except Exception as e:
+        # Fallback in case the table doesn't exist yet or the connection fails
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to retrieve simulation history. Details: {str(e)}"
+        }), 500
