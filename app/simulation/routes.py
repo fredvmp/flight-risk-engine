@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from app.simulation.engine import SimulationEngine
 from app.simulation.models import SimulationHistory
+from app.database import db
 
 simulation_bp = Blueprint('simulation', __name__)
 
@@ -30,7 +31,33 @@ def run_simulation():
         return jsonify({"error": "Missing or invalid 'layovers'. Must be a list of connections."}), 400
 
     result = SimulationEngine.run_hazard_simulation(origin, destination, layovers)
+
+    # Persist successful calculations into the database
+    if result.get("status") == "calculated":
+        try:
+            # Instantiate the history model mapping metrics from the engine payload
+            audit_entry = SimulationHistory(
+                origin=origin.upper(),
+                destination=destination.upper(),
+                total_layovers=result.get("total_layovers", 0),
+                calculated_risk_factor=result.get("calculated_risk_factor", 0.0)
+            )
+            
+            # Push the entity to the unit of work and flush to PostgreSQL
+            db.session.add(audit_entry)
+            db.session.commit()
+            
+        except Exception as db_error:
+            # Rollback database state to maintain persistence sanity if it fails
+            db.session.rollback()
+            # Log the error but allow the request to finish so the user gets their analytical response
+            print(f"[PERSISTENCE ERROR]: Failed to log simulation history. Details: {str(db_error)}")
+
     return jsonify(result), 200
+
+
+
+
 
 
 @simulation_bp.route('/history', methods=['GET'])
