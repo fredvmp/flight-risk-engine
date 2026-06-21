@@ -1,4 +1,3 @@
-version: "3.8"
 
 services:
   postgres_db:
@@ -14,6 +13,26 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alfredo -d flight_risk_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: flight_risk_api
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg://alfredo:alfredo_pass@postgres_db:5432/flight_risk_db
+      - FLASK_ENV=development
+    volumes:
+      - .:/app
+    depends_on:
+      postgres_db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

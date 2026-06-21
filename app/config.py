@@ -18,7 +18,8 @@ class Config:
     DB_NAME = os.getenv("DB_NAME", "flight_risk_db")
 
     # Construct the connection URI
-    SQLALCHEMY_DATABASE_URI = (
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL",
         f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
 
